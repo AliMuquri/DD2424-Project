@@ -10,7 +10,7 @@ from keras.optimizers import Adam
 from keras.callbacks import TensorBoard, ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 
 from yolo3.model import preprocess_true_boxes, yolo_body, tiny_yolo_body, yolo_loss
-from yolo3.utils import get_random_data
+from yolo3.utils import get_random_data, get_test_data
 from PIL import Image
 
 def _main():
@@ -197,19 +197,21 @@ def test_generator(annotation_path, batch_size, input_shape, anchors, num_classe
   while True:
     image_data = []
     box_data = []
+    class_data = []
     for i in range(batch_size):
-      image, box = get_random_data(lines[i], input_shape, random=False)
+      image, box, class_id = get_test_data(lines[i], input_shape)
       image_data.append(image)
       box_data.append(box)
+      class_data.append(class_id)
       i = (i+1) % n
     image_data = np.array(image_data)
     real_image = []
     for image in image_data:
       real_image.append(Image.fromarray(np.uint8(image*255)))
-    box_data = np.array(box_data)
-    y_true = preprocess_true_boxes(box_data, input_shape, anchors, num_classes)
+    box_class = np.array([box_data, class_data])
+    #y_true = preprocess_true_boxes(box_data, input_shape, anchors, num_classes)
 
-    yield real_image, [*y_true]
+    yield real_image, box_class
 
 if __name__ == '__main__':
     _main()
