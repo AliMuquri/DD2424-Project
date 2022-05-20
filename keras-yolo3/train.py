@@ -11,7 +11,7 @@ from keras.callbacks import TensorBoard, ModelCheckpoint, ReduceLROnPlateau, Ear
 
 from yolo3.model import preprocess_true_boxes, yolo_body, tiny_yolo_body, yolo_loss
 from yolo3.utils import get_random_data
-
+from PIL import Image
 
 def _main():
     annotation_path = 'train.txt'
@@ -185,6 +185,31 @@ def data_generator_wrapper(annotation_lines, batch_size, input_shape, anchors, n
     n = len(annotation_lines)
     if n==0 or batch_size<=0: return None
     return data_generator(annotation_lines, batch_size, input_shape, anchors, num_classes)
+
+def test_generator(annotation_path, batch_size, input_shape, anchors, num_classes):
+  #based on data_generator in train.py
+  lines = None
+
+  with open(annotation_path, 'r') as f:
+    lines = f.readlines()
+  n = len(lines)
+  i = 0
+  while True:
+    image_data = []
+    box_data = []
+    for i in range(batch_size):
+      image, box = get_random_data(lines[i], input_shape, random=False)
+      image_data.append(image)
+      box_data.append(box)
+      i = (i+1) % n
+    image_data = np.array(image_data)
+    real_image = []
+    for image in image_data:
+      real_image.append(Image.fromarray(np.uint8(image*255)))
+    box_data = np.array(box_data)
+    y_true = preprocess_true_boxes(box_data, input_shape, anchors, num_classes)
+
+    yield real_image, [*y_true]
 
 if __name__ == '__main__':
     _main()
